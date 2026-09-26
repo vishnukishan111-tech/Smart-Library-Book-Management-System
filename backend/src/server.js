@@ -3,6 +3,14 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const config = require('./config');
 const db = require('./db');
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UNHANDLED REJECTION]', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
 const {
   helmetMiddleware,
   apiLimiter,
