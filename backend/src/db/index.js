@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Pool } = require('pg');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -7,13 +8,14 @@ let pgPool = null;
 let sqliteDb = null;
 let activeEngine = 'none';
 
-// Check if PostgreSQL / Supabase connection is specified
-const databaseUrl = process.env.DATABASE_URL;
+function getDatabaseUrl() {
+  return process.env.DATABASE_URL;
+}
 
 async function initPostgres() {
   try {
     const pool = new Pool({
-      connectionString: databaseUrl,
+      connectionString: getDatabaseUrl(),
       ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false }
     });
     // Test query
@@ -228,7 +230,8 @@ async function bootstrapSqlite() {
 }
 
 async function initializeDatabase() {
-  if (databaseUrl) {
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl) {
     const pgSuccess = await initPostgres();
     if (pgSuccess) return activeEngine;
   }

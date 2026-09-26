@@ -5,22 +5,6 @@
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. DROP EXISTING OBJECTS (FOR CLEAN RE-RUNS IF NEEDED)
-DROP POLICY IF EXISTS "Anyone can view roles" ON roles;
-DROP POLICY IF EXISTS "Super Admins manage roles" ON roles;
-DROP POLICY IF EXISTS "Users can read own profile" ON users;
-DROP POLICY IF EXISTS "Super Admins manage all users" ON users;
-DROP POLICY IF EXISTS "Public and students can view catalog books" ON books;
-DROP POLICY IF EXISTS "Admins and Super Admins can insert books" ON books;
-DROP POLICY IF EXISTS "Admins and Super Admins can update books" ON books;
-DROP POLICY IF EXISTS "Admins and Super Admins can delete books" ON books;
-DROP POLICY IF EXISTS "Students view only their own borrow records" ON borrow_records;
-DROP POLICY IF EXISTS "Students can create borrow record for themselves" ON borrow_records;
-DROP POLICY IF EXISTS "Admins and Super Admins manage borrow records" ON borrow_records;
-DROP POLICY IF EXISTS "Super Admins can view audit logs" ON audit_logs;
-DROP POLICY IF EXISTS "System can insert audit logs" ON audit_logs;
-DROP POLICY IF EXISTS "Users view own login attempts" ON login_attempts;
-DROP POLICY IF EXISTS "System insert login attempts" ON login_attempts;
 
 -- 3. TABLES DEFINITION
 
@@ -158,6 +142,21 @@ ALTER TABLE login_attempts ENABLE ROW LEVEL SECURITY;
 -- ==============================================================================
 -- 6. ROW-LEVEL SECURITY POLICIES
 -- ==============================================================================
+DROP POLICY IF EXISTS "Anyone can view roles" ON roles;
+DROP POLICY IF EXISTS "Super Admins manage roles" ON roles;
+DROP POLICY IF EXISTS "Users can read own profile" ON users;
+DROP POLICY IF EXISTS "Super Admins manage all users" ON users;
+DROP POLICY IF EXISTS "Public and students can view catalog books" ON books;
+DROP POLICY IF EXISTS "Admins and Super Admins can insert books" ON books;
+DROP POLICY IF EXISTS "Admins and Super Admins can update books" ON books;
+DROP POLICY IF EXISTS "Admins and Super Admins can delete books" ON books;
+DROP POLICY IF EXISTS "Students view only their own borrow records" ON borrow_records;
+DROP POLICY IF EXISTS "Students can create borrow record for themselves" ON borrow_records;
+DROP POLICY IF EXISTS "Admins and Super Admins manage borrow records" ON borrow_records;
+DROP POLICY IF EXISTS "Super Admins can view audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "System can insert audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "Users view own login attempts" ON login_attempts;
+DROP POLICY IF EXISTS "System insert login attempts" ON login_attempts;
 
 -- --- ROLES POLICIES ---
 -- Any authenticated or anonymous user can read available roles
