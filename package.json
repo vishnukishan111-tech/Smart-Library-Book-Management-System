@@ -1,0 +1,25 @@
+{
+  "name": "smart-library-system",
+  "version": "1.0.0",
+  "description": "Secure Smart Library Book Management System - React (Next.js) + Node.js/Express + PostgreSQL/Supabase",
+  "scripts": {
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm start",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "keywords": [
+    "library-management",
+    "nextjs",
+    "nodejs",
+    "express",
+    "postgresql",
+    "supabase",
+    "cybersecurity",
+    "rbac",
+    "jwt",
+    "audit-logs"
+  ],
+  "author": "Smart Library Engineering Team",
+  "license": "MIT"
+}
