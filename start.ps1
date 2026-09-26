@@ -5,10 +5,10 @@ Write-Host "====================================================" -ForegroundCol
 $root = $PSScriptRoot
 
 Write-Host "Launching Backend API (Port 5000)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\backend'; node src/server.js"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\backend'; npm.cmd run dev"
 
 Write-Host "Launching Frontend Next.js UI (Port 3000)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\frontend'; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\frontend'; npm.cmd run dev"
 
 Write-Host "System initialized!" -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:3000" -ForegroundColor White

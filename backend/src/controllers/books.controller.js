@@ -23,9 +23,9 @@ async function getBooks(req, res) {
       paramIndex++;
     }
 
-    // Category filter
+    // Category filter (case-insensitive)
     if (category && category !== 'All' && category.trim() !== '') {
-      sql += ` AND category = $${paramIndex}`;
+      sql += ` AND LOWER(category) = LOWER($${paramIndex})`;
       params.push(category.trim());
       paramIndex++;
     }

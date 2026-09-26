@@ -26,10 +26,12 @@ const helmetMiddleware = helmet({
 });
 
 // 2. Rate Limiters
+const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+
 // Auth limiter: Prevents brute force password spraying on login/register
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 requests per windowMs
+  max: isDev ? 100 : 20, // generous in dev, strict 20 in prod
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -42,7 +44,7 @@ const authLimiter = rateLimit({
 // API limiter: general API protection
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: isDev ? 10000 : 500, // 10,000 in dev to support rapid automated testing
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -55,7 +57,7 @@ const apiLimiter = rateLimit({
 // Search limiter: protects search endpoint from scrape bursts
 const searchLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 60,
+  max: isDev ? 1000 : 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

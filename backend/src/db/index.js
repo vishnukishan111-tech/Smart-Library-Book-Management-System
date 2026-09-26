@@ -16,8 +16,15 @@ async function initPostgres() {
   try {
     const pool = new Pool({
       connectionString: getDatabaseUrl(),
-      ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false }
+      ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000,
+      idleTimeoutMillis: 30000
     });
+
+    pool.on('error', (err) => {
+      console.error('[DB] Unexpected idle client error on PostgreSQL pool:', err.message);
+    });
+
     // Test query
     const res = await pool.query('SELECT NOW()');
     console.log('[DB] Connected to PostgreSQL / Supabase successfully at:', res.rows[0].now);
@@ -231,11 +238,53 @@ async function bootstrapSqlite() {
   }
 }
 
+// Auto bootstrap PostgreSQL if missing schema
+async function bootstrapPostgres() {
+  if (!pgPool) return;
+  try {
+    const checkRes = await pgPool.query(
+      "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = 'roles'"
+    );
+
+    if (checkRes.rows.length === 0) {
+      console.log('[DB] PostgreSQL schema tables missing. Creating PostgreSQL schema...');
+      const schemaPath = path.join(__dirname, 'schema.sql');
+      if (fs.existsSync(schemaPath)) {
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        await pgPool.query(schemaSql);
+        console.log('[DB] PostgreSQL schema created successfully.');
+      }
+      const seedPath = path.join(__dirname, 'seed.sql');
+      if (fs.existsSync(seedPath)) {
+        const seedSql = fs.readFileSync(seedPath, 'utf8');
+        await pgPool.query(seedSql);
+        console.log('[DB] PostgreSQL initial seed completed successfully.');
+      }
+    } else {
+      const roleCheck = await pgPool.query('SELECT count(*) as count FROM roles');
+      if (parseInt(roleCheck.rows[0].count, 10) === 0) {
+        console.log('[DB] Seeding empty PostgreSQL tables...');
+        const seedPath = path.join(__dirname, 'seed.sql');
+        if (fs.existsSync(seedPath)) {
+          const seedSql = fs.readFileSync(seedPath, 'utf8');
+          await pgPool.query(seedSql);
+          console.log('[DB] PostgreSQL initial seed completed.');
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[DB] PostgreSQL bootstrap check warning:', err.message);
+  }
+}
+
 async function initializeDatabase() {
   const dbUrl = getDatabaseUrl();
   if (dbUrl) {
     const pgSuccess = await initPostgres();
-    if (pgSuccess) return activeEngine;
+    if (pgSuccess) {
+      await bootstrapPostgres();
+      return activeEngine;
+    }
   }
   await initSqlite();
   await bootstrapSqlite();

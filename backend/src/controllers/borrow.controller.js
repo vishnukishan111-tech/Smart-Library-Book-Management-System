@@ -35,16 +35,34 @@ async function refreshOverdueRecords() {
 async function borrowBook(req, res) {
   try {
     const { bookId, targetUserId } = req.body;
-    const userId = (req.user.role === 'student' || !targetUserId) ? req.user.id : targetUserId;
 
     if (!bookId) {
       return res.status(400).json({ success: false, error: 'Book ID is required.' });
     }
 
-    // Check if book exists and has available copies (atomic transaction check)
-    const bookRes = await db.query('SELECT * FROM books WHERE id = $1', [bookId]);
+    const numericBookId = parseInt(bookId, 10);
+    if (isNaN(numericBookId)) {
+      return res.status(400).json({ success: false, error: 'Invalid Book ID provided.' });
+    }
+
+    const userId = (req.user.role === 'student' || !targetUserId)
+      ? req.user.id
+      : parseInt(targetUserId, 10);
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid student user ID provided.' });
+    }
+
+    // Verify student user exists
+    const userCheck = await db.query('SELECT id, name FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Student borrower account not found.' });
+    }
+
+    // Check if book exists and has available copies
+    const bookRes = await db.query('SELECT * FROM books WHERE id = $1', [numericBookId]);
     if (bookRes.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Book not found.' });
+      return res.status(404).json({ success: false, error: 'Book not found in catalog.' });
     }
 
     const book = bookRes.rows[0];
@@ -58,7 +76,7 @@ async function borrowBook(req, res) {
     // Check if student already has this book borrowed
     const activeBorrow = await db.query(
       `SELECT id FROM borrow_records WHERE user_id = $1 AND book_id = $2 AND status IN ('borrowed', 'overdue')`,
-      [userId, bookId]
+      [userId, numericBookId]
     );
 
     if (activeBorrow.rows.length > 0) {
@@ -68,22 +86,29 @@ async function borrowBook(req, res) {
       });
     }
 
+    // Atomic decrement to prevent race conditions on last copy
+    const updateRes = await db.query(
+      'UPDATE books SET available_copies = available_copies - 1 WHERE id = $1 AND available_copies > 0',
+      [numericBookId]
+    );
+
+    if (updateRes.rowCount === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'The last copy was just checked out by another student. Please try again later.'
+      });
+    }
+
     // Calculate due date (14 days from now)
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + BORROW_DURATION_DAYS);
-
-    // Decrement available copies
-    await db.query(
-      'UPDATE books SET available_copies = available_copies - 1 WHERE id = $1',
-      [bookId]
-    );
 
     // Create borrow record
     const recordRes = await db.query(
       `INSERT INTO borrow_records (user_id, book_id, due_date, status, fine_amount)
        VALUES ($1, $2, $3, 'borrowed', 0.00)
        RETURNING id`,
-      [userId, bookId, dueDate.toISOString()]
+      [userId, numericBookId, dueDate.toISOString()]
     );
 
     const recordId = recordRes.lastID || (recordRes.rows && recordRes.rows[0]?.id);
@@ -94,7 +119,7 @@ async function borrowBook(req, res) {
       action: 'BOOK_BORROWED',
       entityType: 'borrow_record',
       entityId: recordId,
-      details: { bookId, bookTitle: book.title, dueDate: dueDate.toISOString() },
+      details: { bookId: numericBookId, bookTitle: book.title, dueDate: dueDate.toISOString(), borrowerUserId: userId },
       req
     });
 
@@ -124,13 +149,18 @@ async function returnBook(req, res) {
       return res.status(400).json({ success: false, error: 'Borrow Record ID is required.' });
     }
 
+    const numericRecordId = parseInt(recordId, 10);
+    if (isNaN(numericRecordId)) {
+      return res.status(400).json({ success: false, error: 'Invalid Record ID provided.' });
+    }
+
     // Find the record
     const recordRes = await db.query(
       `SELECT br.*, b.title as book_title
        FROM borrow_records br
        JOIN books b ON br.book_id = b.id
        WHERE br.id = $1`,
-      [recordId]
+      [numericRecordId]
     );
 
     if (recordRes.rows.length === 0) {
@@ -169,12 +199,12 @@ async function returnBook(req, res) {
       `UPDATE borrow_records 
        SET status = 'returned', return_date = $1, fine_amount = $2 
        WHERE id = $3`,
-      [returnDateIso, fineAmount, recordId]
+      [returnDateIso, fineAmount, numericRecordId]
     );
 
-    // Increment available copies
+    // Safe increment available copies without exceeding total_copies
     await db.query(
-      'UPDATE books SET available_copies = available_copies + 1 WHERE id = $1',
+      'UPDATE books SET available_copies = CASE WHEN available_copies + 1 > total_copies THEN total_copies ELSE available_copies + 1 END WHERE id = $1',
       [record.book_id]
     );
 

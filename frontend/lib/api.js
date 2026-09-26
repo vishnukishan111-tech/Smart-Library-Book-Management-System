@@ -1,8 +1,11 @@
 // API Client for Smart Library Management System
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Normalize endpoint to always start with /
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
   
   const headers = {
     'Content-Type': 'application/json',
@@ -18,13 +21,33 @@ async function request(endpoint, options = {}) {
     }
   }
 
+  // Setup abort controller for timeout (15s)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs || 15000);
+
   const config = {
     ...options,
-    headers
+    headers,
+    signal: options.signal || controller.signal
   };
 
   try {
-    let response = await fetch(url, config);
+    let response;
+    try {
+      response = await fetch(url, config);
+    } catch (networkErr) {
+      if (networkErr.name === 'AbortError') {
+        const timeoutError = new Error('Request timed out. The server took too long to respond.');
+        timeoutError.code = 'TIMEOUT';
+        throw timeoutError;
+      }
+      const connError = new Error('Cannot connect to Smart Library API server. Please ensure the backend is running on http://localhost:5000.');
+      connError.code = 'CONNECTION_REFUSED';
+      connError.originalError = networkErr;
+      throw connError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     // If 401 Token Expired, attempt seamless token refresh
     if (response.status === 401 && typeof window !== 'undefined') {
@@ -33,7 +56,10 @@ async function request(endpoint, options = {}) {
         try {
           const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-library-csrf': 'secure-smart-lib-csrf-token-2026'
+            },
             body: JSON.stringify({ refreshToken })
           });
 
@@ -61,7 +87,7 @@ async function request(endpoint, options = {}) {
       }
     }
 
-    const data = await response.json().catch(() => ({ error: 'Non-JSON response received' }));
+    const data = await response.json().catch(() => ({ error: 'Non-JSON response received from server' }));
 
     if (!response.ok) {
       const error = new Error(data.error || `HTTP error ${response.status}`);

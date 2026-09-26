@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -29,6 +29,7 @@ export default function CatalogPage() {
 
   // Filters
   const [search, setSearch] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [availability, setAvailability] = useState('all');
 
@@ -36,11 +37,11 @@ export default function CatalogPage() {
   const [selectedBookForBorrow, setSelectedBookForBorrow] = useState(null);
   const [borrowing, setBorrowing] = useState(false);
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
       const data = await api.books.getAll({
-        search,
+        search: activeSearch,
         category: selectedCategory === 'All' ? '' : selectedCategory,
         availability
       });
@@ -53,15 +54,15 @@ export default function CatalogPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeSearch, selectedCategory, availability, notify]);
 
   useEffect(() => {
     fetchBooks();
-  }, [selectedCategory, availability]);
+  }, [fetchBooks]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    fetchBooks();
+    setActiveSearch(search);
   };
 
   const handleBorrowClick = (book) => {

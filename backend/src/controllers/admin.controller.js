@@ -49,6 +49,12 @@ async function updateUserRole(req, res) {
       });
     }
 
+    // Check user exists
+    const userCheck = await db.query('SELECT id, name FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
     // Check role exists
     const roleCheck = await db.query('SELECT name FROM roles WHERE id = $1', [roleId]);
     if (roleCheck.rows.length === 0) {
@@ -65,13 +71,13 @@ async function updateUserRole(req, res) {
       action: 'USER_ROLE_CHANGED',
       entityType: 'user',
       entityId: userId,
-      details: { newRoleId: roleId, newRoleName },
+      details: { targetUserName: userCheck.rows[0].name, newRoleId: roleId, newRoleName },
       req
     });
 
     return res.json({
       success: true,
-      message: `User role successfully updated to "${newRoleName}".`
+      message: `User role for "${userCheck.rows[0].name}" successfully updated to "${newRoleName}".`
     });
   } catch (err) {
     console.error('[UPDATE ROLE ERROR]', err);
@@ -86,6 +92,11 @@ async function unlockUserAccount(req, res) {
   try {
     const { userId } = req.params;
 
+    const userCheck = await db.query('SELECT id, name, email FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
     await db.query(
       'UPDATE users SET failed_login_attempts = 0, lockout_until = NULL WHERE id = $1',
       [userId]
@@ -97,12 +108,13 @@ async function unlockUserAccount(req, res) {
       action: 'ADMIN_UNLOCKED_USER',
       entityType: 'user',
       entityId: userId,
+      details: { unlockedUserEmail: userCheck.rows[0].email },
       req
     });
 
     return res.json({
       success: true,
-      message: 'User account has been unlocked and failed login counter reset.'
+      message: `User account for "${userCheck.rows[0].name}" has been unlocked and failed login counter reset.`
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: 'Failed to unlock user.' });

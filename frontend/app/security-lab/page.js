@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -37,17 +37,7 @@ export default function SecurityLabPage() {
   // Security Defenses State
   const [defenses, setDefenses] = useState(null);
 
-  useEffect(() => {
-    // Load defenses
-    api.securityDemo.inspectDefenses().then((res) => {
-      setDefenses(res.securityControls);
-    }).catch(console.error);
-
-    // Initial SQL Injection test run for immediate visual display
-    handleRunSqlTest("' OR '1'='1");
-  }, []);
-
-  const handleRunSqlTest = async (payloadToTest) => {
+  const handleRunSqlTest = useCallback(async (payloadToTest) => {
     try {
       setSqlTesting(true);
       const res = await api.securityDemo.testSqlInjection(payloadToTest || sqlPayload);
@@ -57,7 +47,17 @@ export default function SecurityLabPage() {
     } finally {
       setSqlTesting(false);
     }
-  };
+  }, [sqlPayload, notify]);
+
+  useEffect(() => {
+    // Load defenses
+    api.securityDemo.inspectDefenses().then((res) => {
+      setDefenses(res.securityControls);
+    }).catch(console.error);
+
+    // Initial SQL Injection test run for immediate visual display
+    handleRunSqlTest("' OR '1'='1");
+  }, [handleRunSqlTest]);
 
   const handleSimulateFailedLogin = async () => {
     try {

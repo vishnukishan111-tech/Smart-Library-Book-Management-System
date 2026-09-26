@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
     description: ''
   });
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.books.getAll({ search: bookSearch });
@@ -62,9 +62,9 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookSearch, notify]);
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.borrow.getAllRecords({
@@ -78,14 +78,14 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [recordsStatusFilter, recordsSearch, notify]);
 
   useEffect(() => {
     if (user && (role === 'admin' || role === 'super_admin')) {
       if (activeTab === 'inventory') fetchInventory();
       else fetchRecords();
     }
-  }, [user, role, activeTab, recordsStatusFilter]);
+  }, [user, role, activeTab, fetchInventory, fetchRecords]);
 
   const handleCreateBook = async (e) => {
     e.preventDefault();

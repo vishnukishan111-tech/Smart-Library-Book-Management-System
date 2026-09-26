@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ export default function SuperAdminPage() {
   // System status state
   const [systemStatus, setSystemStatus] = useState(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.admin.getUsers();
@@ -49,9 +49,9 @@ export default function SuperAdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [notify]);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.admin.getAuditLogs({
@@ -65,9 +65,9 @@ export default function SuperAdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logFilterAction, logFilterEmail, notify]);
 
-  const fetchSystemStatus = async () => {
+  const fetchSystemStatus = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.admin.getSystemStatus();
@@ -77,7 +77,7 @@ export default function SuperAdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [notify]);
 
   useEffect(() => {
     if (user && role === 'super_admin') {
@@ -85,7 +85,7 @@ export default function SuperAdminPage() {
       else if (activeTab === 'logs') fetchLogs();
       else if (activeTab === 'system') fetchSystemStatus();
     }
-  }, [user, role, activeTab]);
+  }, [user, role, activeTab, fetchUsers, fetchLogs, fetchSystemStatus]);
 
   const handleRoleChange = async (targetUserId, newRoleId) => {
     try {

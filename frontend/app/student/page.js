@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -30,7 +30,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [returningId, setReturningId] = useState(null);
 
-  const fetchStudentData = async () => {
+  const fetchStudentData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.borrow.getMyHistory();
@@ -46,13 +46,13 @@ export default function StudentDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [notify]);
 
   useEffect(() => {
     if (user) {
       fetchStudentData();
     }
-  }, [user]);
+  }, [user, fetchStudentData]);
 
   const handleReturn = async (recordId, title) => {
     try {

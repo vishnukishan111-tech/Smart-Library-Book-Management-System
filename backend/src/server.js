@@ -23,19 +23,33 @@ const app = express();
 app.use(helmetMiddleware);
 
 // 2. CORS Configuration
-const allowedOrigins = [
+const configuredOrigins = (config.security.corsOrigin || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  config.security.corsOrigin
-];
+  ...configuredOrigins
+]);
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS security policy.'));
+    if (!origin) return callback(null, true);
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+
+    // In development mode, allow any localhost or 127.0.0.1 port
+    const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+    if (isDev && (/^http:\/\/localhost(:\d+)?$/.test(normalizedOrigin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(normalizedOrigin))) {
+      return callback(null, true);
     }
+
+    if (allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked request from origin: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -53,10 +67,7 @@ app.use(inputSanitizer);
 // 5. CSRF Protection
 app.use(csrfProtection);
 
-// 6. Global API Rate Limiter
-app.use('/api', apiLimiter);
-
-// 7. Health Check
+// 6. Health Check (always unthrottled for reliable uptime monitoring)
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -66,6 +77,9 @@ app.get('/api/health', (req, res) => {
     version: '1.0.0'
   });
 });
+
+// 7. Global API Rate Limiter
+app.use('/api', apiLimiter);
 
 // 8. Mount Domain Routes
 app.use('/api/auth', authRoutes);
