@@ -148,7 +148,8 @@ async function createBook(req, res) {
     const copies = parseInt(total_copies, 10) || 1;
     const insertRes = await db.query(
       `INSERT INTO books (isbn, title, author, category, cover_image, total_copies, available_copies, shelf_location, published_year, description)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id`,
       [
         isbn.trim(),
         title.trim(),

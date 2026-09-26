@@ -65,9 +65,11 @@ async function query(sql, params = []) {
     const start = Date.now();
     const res = await pgPool.query(sql, params);
     const duration = Date.now() - start;
+    const lastID = (res.rows && res.rows[0] && res.rows[0].id) ? res.rows[0].id : null;
     return {
       rows: res.rows,
       rowCount: res.rowCount,
+      lastID,
       duration
     };
   }

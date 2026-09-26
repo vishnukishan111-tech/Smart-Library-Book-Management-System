@@ -81,7 +81,8 @@ async function borrowBook(req, res) {
     // Create borrow record
     const recordRes = await db.query(
       `INSERT INTO borrow_records (user_id, book_id, due_date, status, fine_amount)
-       VALUES ($1, $2, $3, 'borrowed', 0.00)`,
+       VALUES ($1, $2, $3, 'borrowed', 0.00)
+       RETURNING id`,
       [userId, bookId, dueDate.toISOString()]
     );
 

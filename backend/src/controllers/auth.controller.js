@@ -63,7 +63,8 @@ async function register(req, res) {
     // Insert user safely using parameterized query
     const insertRes = await db.query(
       `INSERT INTO users (name, email, password_hash, student_id, role_id)
-       VALUES ($1, $2, $3, $4, $5)`,
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
       [name, email.toLowerCase(), passwordHash, generatedStudentId, roleId]
     );
 
