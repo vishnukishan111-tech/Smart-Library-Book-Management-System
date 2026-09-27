@@ -1,8 +1,14 @@
 require('dotenv').config();
 const { Pool } = require('pg');
-const sqlite3 = require('sqlite3').verbose();
+let sqlite3 = null;
+try {
+  sqlite3 = require('sqlite3').verbose();
+} catch (e) {
+  console.warn('[DB] sqlite3 optional driver not available:', e.message);
+}
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 let pgPool = null;
 let sqliteDb = null;
@@ -39,9 +45,13 @@ async function initPostgres() {
 
 function initSqlite() {
   return new Promise((resolve, reject) => {
-    const dataDir = path.join(__dirname, '../../data');
+    if (!sqlite3) {
+      return reject(new Error('sqlite3 module is not installed or available on this system'));
+    }
+    const isServerless = !!process.env.VERCEL;
+    const dataDir = isServerless ? os.tmpdir() : path.join(__dirname, '../../data');
     if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+      try { fs.mkdirSync(dataDir, { recursive: true }); } catch (_) {}
     }
     const dbPath = path.join(dataDir, 'library.db');
     const db = new sqlite3.Database(dbPath, (err) => {
