@@ -10,7 +10,7 @@ const helmetMiddleware = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https://images.unsplash.com', 'https://*.supabase.co'],
-      connectSrc: ["'self'", 'http://localhost:3000', 'http://localhost:5000', 'https://*.supabase.co']
+      connectSrc: ["'self'", 'http://localhost:3000', 'http://localhost:5000', 'https://*.supabase.co', 'https://*.vercel.app']
     }
   },
   crossOriginEmbedderPolicy: false,

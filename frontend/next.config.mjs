@@ -12,6 +12,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://smart-library-backend-seven.vercel.app/api'}/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

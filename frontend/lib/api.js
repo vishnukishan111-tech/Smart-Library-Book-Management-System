@@ -1,5 +1,5 @@
 // API Client for Smart Library Management System
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://smart-library-backend-seven.vercel.app/api';
 const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
 async function request(endpoint, options = {}) {
