@@ -47,13 +47,19 @@ app.use(cors({
     if (!origin) return callback(null, true);
     const normalizedOrigin = origin.replace(/\/+$/, '');
 
+    // Allow wildcard if configured
+    if (configuredOrigins.includes('*')) {
+      return callback(null, true);
+    }
+
     // In development mode, allow any localhost or 127.0.0.1 port
     const isDev = (process.env.NODE_ENV || 'development') !== 'production';
     if (isDev && (/^http:\/\/localhost(:\d+)?$/.test(normalizedOrigin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(normalizedOrigin))) {
       return callback(null, true);
     }
 
-    if (allowedOrigins.has(normalizedOrigin)) {
+    // Allow configured origins, or any Vercel preview/production deployment
+    if (allowedOrigins.has(normalizedOrigin) || normalizedOrigin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
 
